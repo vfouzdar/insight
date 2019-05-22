@@ -4,6 +4,9 @@
 # Ignore Gradle build output directory
 build
 
+# ignore bineries
+bin
+
 # Compiled class file
 *.class
 
