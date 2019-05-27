@@ -1,0 +1,41 @@
+<html>
+    <body>
+    	--------------------------Error , please check the fields for error---------------
+        <form action="#" th:action="@{/}" th:object="${userForm}" method="post">
+            <table>
+                <tr>
+                    <td>First Name:</td>
+                    <td><input type="text" th:field="*{firstName}" /></td>
+                    <td th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"> Required</td>
+                </tr>
+                
+                <tr>
+                    <td>Last Name:</td>
+                    <td><input type="text" th:field="*{lastName}" /></td>
+                    <td th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"> Required </td>
+                </tr>
+                
+                <tr>
+                    <td>Age:</td>
+                    <td><input type="text" th:field="*{age}" /></td>
+                    <td th:if="${#fields.hasErrors('age')}" th:errors="*{age}">Required</td>
+                </tr>
+                
+                <tr>
+                    <td>Address:</td>
+                    <td><input type="text" th:field="*{address}" /></td>
+                    <td th:if="${#fields.hasErrors('address')}" th:errors="*{address}"> Required </td>
+                </tr>
+                 <tr>
+                    <td>Email Id:</td>
+                    <td><input type="text" th:field="*{emailId}" /></td>
+                    <td th:if="${#fields.hasErrors('emailId')}" th:errors="*{emailId}"> Required </td>
+                </tr>
+                
+                <tr>
+                    <td><button type="submit">Submit</button></td>
+                </tr>
+            </table>
+        </form>
+    </body>
+</html>

@@ -1,0 +1,23 @@
+<html>
+    <body>
+        <form action="#" th:action="@{/LoginUser}" th:object="${userLoginForm}" method="post">
+            <table>
+                <tr>
+                    <td>First Name:</td>
+                    <td><input type="text" th:field="*{firstName}" /></td>
+                    <td th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"> Required</td>
+                </tr>
+                
+                 <tr>
+                    <td>Email Id:</td>
+                    <td><input type="text" th:field="*{emailId}" /></td>
+                    <td th:if="${#fields.hasErrors('emailId')}" th:errors="*{emailId}"> Required </td>
+                </tr>
+                
+                <tr>
+                    <td><button type="submit">Submit</button></td>
+                </tr>
+            </table>
+        </form>
+    </body>
+</html>
