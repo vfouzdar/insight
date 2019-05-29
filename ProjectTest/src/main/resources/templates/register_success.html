@@ -1,7 +1,7 @@
 <html>
     <body>
     
-        <form action="#" th:object="${userForm}" method="get">
+        <form action="#" th:action="@{/}" th:object="${userForm}" method="get">
         <div>
         <h2>  Registration Successful - Here are your details </h2>
         </div>
@@ -29,6 +29,9 @@
                     <td>Email Id:</td>
                     <td th:text ="*{emailId}" ></td>
                 </tr>
+                <tr>
+					<a th:href="@{/ShowEditForm}">EditProfile</a>&nbsp
+				</tr>
                 
                 
             </table>

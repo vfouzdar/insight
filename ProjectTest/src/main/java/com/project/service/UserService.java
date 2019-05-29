@@ -17,16 +17,23 @@ public class UserService {
 	private UserRepository userRepository;
 
 	public User registerUser(User user) {
-		if (user != null)
-			logger.info("-----------########## Not Null");
-		return userRepository.save(user);
+		if (!checkUserExistence(user)) {
+			logger.info("checking for emailid -----------------------------------------");
+			if (user != null){
+				logger.info("-----------########## Not Null");
+			return userRepository.save(user);
+			}
+		}
 
+		return null;
 	}
-	
 
 	public User checkUserAuthentication(User user) {
-		
+
 		return userRepository.userExist(user);
 	}
 
+	public boolean checkUserExistence(User user) {
+		return userRepository.findByEmailId(user);
+	}
 }

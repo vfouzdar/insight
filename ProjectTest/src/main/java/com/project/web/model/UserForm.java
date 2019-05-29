@@ -13,9 +13,6 @@ import com.project.entity.User;
 public class UserForm {
 
 	private long id;
-	
-
-
 
 	@NotNull
     @Size(min=2, max=30)
