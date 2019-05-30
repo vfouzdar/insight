@@ -1,6 +1,6 @@
 <html>
     <body>
-        <form action="#" th:action="@{/ShowEditForm}" th:object="${userForm}" method="post">
+        <form action="#" th:action="@{/editUser}" th:object="${userForm}" method="post">
             <table>
                 <tr>
                     <td>First Name:</td>
@@ -28,6 +28,7 @@
                  <tr>
                     <td>Email Id:</td>
                     <td th:text ="*{emailId}" ></td>
+                    <input type="hidden" th:field="*{emailId}" />
                 </tr>
                 
                 <tr>

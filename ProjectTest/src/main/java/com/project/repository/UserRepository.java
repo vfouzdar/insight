@@ -86,14 +86,41 @@ public class UserRepository implements CrudRepository<User, Integer> {
 	public boolean findByEmailId(User user) {
 		String sqlFindEmailId = "SELECT EMAIL_ID from PROJECTTESTUSER where EMAIL_ID = ?";
 		String[] args = { user.getEmailId()};
+		
 
-		String nextEmailId = jdbcTemplate.queryForObject(sqlFindEmailId, args, String.class);
+		String nextEmailId = jdbcTemplate.query(sqlFindEmailId, args,  new ResultSetExtractor<String>() {
+
+			@Override
+			public String extractData(ResultSet rs) throws SQLException, DataAccessException {
+
+				logger.info("Extracting result");
+				if(rs != null){
+					logger.info("Number of Emails found =" + rs.getFetchSize());
+					while (rs.next()) {
+						String uid = rs.getString("EMAIL_ID");
+						return uid;
+					}
+				}
+				return null;
+			}
+		});
 
 		if (nextEmailId == null) {
 			logger.info("emailid not found----------------------------------");
 			return false;
 		}
 		return true;
+	}
+	
+	public User updateUser(User user){
+		String[] args = { user.getAddress(), user.getAge().toString(), user.getFirstName(),
+				user.getLastName(), user.getEmailId() };
+		String insertSql = "UPDATE PROJECTTESTUSER SET ADDRESS = ?,AGE = ? ,FIRST_NAME = ?,LAST_NAME = ? WHERE EMAIL_ID = ?";
+
+		jdbcTemplate.update(insertSql, args);
+
+		return user;
+
 	}
 
 	@Override

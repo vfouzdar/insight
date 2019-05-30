@@ -28,12 +28,16 @@ public class UserService {
 		return null;
 	}
 
-	public User checkUserAuthentication(User user) {
+	public User findUserByEmailId(User user) {
 
 		return userRepository.userExist(user);
 	}
 
 	public boolean checkUserExistence(User user) {
 		return userRepository.findByEmailId(user);
+	}
+	
+	public User updateUserByEmailId(User user){
+		return userRepository.updateUser(user);
 	}
 }

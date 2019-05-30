@@ -1,38 +1,70 @@
 package com.project.web.controller;
 
+import javax.servlet.http.HttpSession;
+import javax.validation.Valid;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.bind.annotation.SessionAttributes;
 
+import com.project.entity.User;
+import com.project.service.UserService;
 import com.project.web.model.UserForm;
+import com.project.web.model.UserLoginForm;
 
 @Controller
-@SessionAttributes(WebConstants.SESSION_EMAIL_ID) 
 public class UserController {
 
-	private static final Logger logger = LoggerFactory.getLogger(WebControllerPost.class);
+	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+
+	@Autowired
+	private UserService userService;
 
 	@GetMapping("/ShowEditForm")
-	public String showEditForm(UserForm userForm, @SessionAttribute(WebConstants.SESSION_EMAIL_ID) String userIdentifier, BindingResult bindingResult) {
+	public String showEditForm(UserForm userForm, BindingResult bindingResult, HttpSession session) {
 		logger.info("\n\n\n\n##########################Show Edit Form");
-		userIdentifier="neelam@gmail.com";
-		
-		if(StringUtils.hasText(userIdentifier)){
-			
+		String userIdentifier = (String) session.getAttribute(WebConstants.SESSION_EMAIL_ID);
+		logger.info("\n\n\n\n########################## userIdentifier= " + userIdentifier);
+
+		if (StringUtils.hasText(userIdentifier)) {
+			User user = new User();
+			user.setEmailId(userIdentifier);
+
 			logger.info("##############/n/n/n Email available=" + userIdentifier);
-			//TODO:fetch user using emailId
-			//Convert user to userForm
-		}else{
+			user = userService.findUserByEmailId(user);
+			userForm.mapUser(user);
+			return "editform";
+		} else {
 			bindingResult.rejectValue("emailId", "user.notLogged", "User Not LoggedIn");
 			return "login";
 		}
-		return "";
 
 	}
+
+	@PostMapping("/editUser")
+	public String editUserProfile(@Valid UserForm userForm, BindingResult bindingResult, HttpSession session) {
+		logger.info("\n\n\n\n##########################Editing profile \n\n");
+
+		if (bindingResult.hasErrors()) {
+			return "error";
+		} else {
+
+			User user = new User();
+			user.mapUserForm(userForm);
+			user = userService.updateUserByEmailId(user);
+			logger.info("##############/n/n/n Profile Updated");
+			userForm.mapUser(user);
+			return "register_success";
+		}
+
+	}
+
 }
