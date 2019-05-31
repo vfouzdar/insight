@@ -20,6 +20,7 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.project.entity.Activity;
+import com.project.entity.ActivityType;
 import com.project.entity.User;
 import com.project.service.ActivityService;
 import com.project.service.UserService;
@@ -32,7 +33,7 @@ public class WebControllerPost implements WebMvcConfigurer {
 
 	@Autowired
 	private UserService userService;
-	
+
 	@Autowired
 	private ActivityService activityService;
 
@@ -76,11 +77,13 @@ public class WebControllerPost implements WebMvcConfigurer {
 				logger.info("User RegisterForm -----------------------");
 				userForm.mapUser(user);
 
-				activity.setType("New User registered");
 				logger.info("Set new activity---------------------------------");
+				activity.setActivityType(ActivityType.REGISTER);
+				activity.setUserId(user.getId());
 				activity.setCreateDate(GregorianCalendar.getInstance().getTime());
+
 				activityService.saveNewActivity(activity);
-				
+
 				return "register_success";
 			} else {
 				bindingResult.rejectValue("emailId", "user.exist", "User already exist");
@@ -93,19 +96,19 @@ public class WebControllerPost implements WebMvcConfigurer {
 	}
 
 	@PostMapping("/LoginUser")
-	public String checkUserLoginInfo(@Valid UserLoginForm userLoginForm, BindingResult bindingResult,
-			UserForm userForm, HttpSession session) {
+	public String checkUserLoginInfo(@Valid UserLoginForm userLoginForm, BindingResult bindingResult, UserForm userForm,
+			HttpSession session) {
 		logger.info("\n\n\n\n##########################Show Login Form\n\n");
 
-		logger.info("\n\n\n\n Session not null=" + (session!=  null));
-		if(session!=  null ){
+		logger.info("\n\n\n\n Session not null=" + (session != null));
+		if (session != null) {
 			logger.info("\n\n\n\n Session get LastAccessedTime=" + (session.getLastAccessedTime()));
 		}
-		
+
 		if (bindingResult.hasErrors()) {
 			return "error";
 		} else {
-		
+
 			User user = new User();
 			user.mapUserLoginForm(userLoginForm);
 			user = userService.findUserByEmailId(user);
@@ -115,14 +118,15 @@ public class WebControllerPost implements WebMvcConfigurer {
 				logger.info("User logged in -----------------------");
 				userForm.mapUser(user);
 				session.setAttribute(WebConstants.SESSION_EMAIL_ID, user.getEmailId());
-				
-				activity.setType("User Loggedin");
+
+				activity.setActivityType(ActivityType.LOGIN);
 				activity.setCreateDate(GregorianCalendar.getInstance().getTime());
+				activity.setUserId(user.getId());
 				logger.info("Set new activity---------------------------------");
 				activityService.saveNewActivity(activity);
-				
-				return "register_success";
-				
+
+				return "login_success";
+
 			} else {
 				logger.info("wrong user------------------");
 				return "login";

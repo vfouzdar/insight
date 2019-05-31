@@ -79,6 +79,7 @@ public class UserRepository implements CrudRepository<User, Integer> {
 		String insertSql = "INSERT INTO PROJECTTESTUSER (ADDRESS,AGE,EMAIL_ID,FIRST_NAME,LAST_NAME, ID) VALUES(?,?,?,?,?,?)";
 
 		jdbcTemplate.update(insertSql, args);
+		user.setId(nextId);
 
 		return user;
 	}

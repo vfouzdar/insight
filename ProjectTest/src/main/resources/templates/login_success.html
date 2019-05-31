@@ -1,0 +1,46 @@
+<html>
+    <body>
+    
+        <form action="#" th:action="@{/}" th:object="${userForm}" method="get">
+        <div>
+        <h2>  Login Successful - Here are your details  and Links </h2>
+        </div>
+            <table>
+                <tr>
+                    <td>First Name:</td>
+                    <td th:text = "*{firstName}" ></td>
+                </tr>
+                
+                <tr>
+                    <td>Last Name:</td>
+                    <td th:text = "*{lastName}" ></td>
+                </tr>
+                
+                <tr>
+                    <td>Age:</td>
+                    <td th:text ="*{age}" ></td>
+                </tr>
+                
+                <tr>
+                    <td>Address:</td>
+                    <td th:text ="*{address}" ></td>
+                </tr>
+                 <tr>
+                    <td>Email Id:</td>
+                    <td th:text ="*{emailId}" ></td>
+                </tr>
+                <tr>
+					<a th:href="@{/ShowEditForm}">EditProfile</a>&nbsp
+				</tr>
+                <tr>
+					<a th:href="@{/ShowActivityForm}">Activity</a>&nbsp
+				</tr>
+                <tr>
+					<a th:href="@{/logout}">Logout</a>&nbsp
+				</tr>
+                
+                
+            </table>
+        </form>
+    </body>
+</html>

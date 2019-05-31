@@ -5,4 +5,5 @@
 build
 
 # Ignore Gradle project-specific logs file
-.logs
+logs
+.gz

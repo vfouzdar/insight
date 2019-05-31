@@ -1,72 +1,60 @@
-package com.project.entity;
-
+package com.project.web.model;
 
 import java.util.Date;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import com.project.entity.Activity;
+import com.project.entity.ActivityType;
 
-import com.project.web.model.ActivityForm;
-import com.project.web.model.UserForm;
-
-
-@Entity
-@Table(name = "PROJECT_ACTIVITY", schema ="BISAMPLE" )
-
-public class Activity {
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+public class ActivityForm {
 	private long id;
-	
+
 	private Date createDate;
-	
+
 	private ActivityType activityType;
-	
+
 	private long userId;
-	
 
-
-	
 	public long getId() {
 		return id;
 	}
+
 	public void setId(long id) {
 		this.id = id;
 	}
+
 	public long getUserId() {
 		return userId;
 	}
+
 	public void setUserId(long userId) {
 		this.userId = userId;
 	}
+
 	public ActivityType getActivityType() {
 		return activityType;
 	}
+
 	public void setActivityType(ActivityType activityType) {
 		this.activityType = activityType;
 	}
+
 	@Override
 	public String toString() {
 		return "Activity [id=" + id + ", createDate=" + createDate + "]";
 	}
+
 	public Date getCreateDate() {
 		return createDate;
 	}
+
 	public void setCreateDate(Date createDate) {
 		this.createDate = createDate;
 	}
-	
-	public void mapActivityForm(ActivityForm activityForm){
-		setId(activityForm.getId());
-		setActivityType(activityForm.getActivityType());
-		setUserId(activityForm.getUserId());
-		setCreateDate(activityForm.getCreateDate());
-		
+
+	public void mapActivity(Activity activity){
+		setActivityType(activity.getActivityType());
+		setCreateDate(activity.getCreateDate());
+		setId(activity.getId());
+		setUserId(activity.getUserId());
 	}
-
-
 }
