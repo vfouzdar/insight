@@ -1,0 +1,20 @@
+<html>
+    <body>
+    
+        <form action="#" th:action="@{/}" th:object="${activityForm}" method="get">
+        <div>
+        <h2>  Here are your transaction details #
+        			<td th:text ="*{userId}" >
+	 </h2>
+        </div>
+            <table>
+            	<th:block th:each="ac, stat : *{listAct}">
+				<tr >         
+        			 <td th:text="${ac.creatDate}"></td>
+       				 <td th:text="${ac.userId}" ></td>
+     			 </tr>
+     			 </th:block>     
+            </table>
+        </form>
+    </body>
+</html>

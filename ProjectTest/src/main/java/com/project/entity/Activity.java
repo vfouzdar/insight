@@ -60,13 +60,6 @@ public class Activity {
 		this.createDate = createDate;
 	}
 	
-	public void mapActivityForm(ActivityForm activityForm){
-		setId(activityForm.getId());
-		setActivityType(activityForm.getActivityType());
-		setUserId(activityForm.getUserId());
-		setCreateDate(activityForm.getCreateDate());
-		
-	}
-
+	
 
 }

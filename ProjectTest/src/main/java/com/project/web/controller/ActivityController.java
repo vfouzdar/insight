@@ -52,26 +52,12 @@ public class ActivityController {
 			List<Activity> activityList = activityService.getUserActivity(activity);
 			
 			activityList.stream().forEach((act) -> logger.info(act.getActivityType().toString() + act.getId() + act.getCreateDate()));
+			activityForm.setUserId(user.getId());
+			activityForm.mapActivity(activityList);
 			
 			
-			/*userForm.mapUser(user);
-			
-			logger.info("##############set new activity------------");
-			activity.setActivityType(ActivityType.EDIT);
-			activity.setUserId(user.getId()); 
-			activity.setCreateDate(GregorianCalendar.getInstance().getTime());
-			logger.info("Set new activity---------------------------------");
-			activityService.saveNewActivity(activity);
 
-			
-			return "editform";
-		} else {
-			bindingResult.rejectValue("emailId", "user.notLogged", "User Not LoggedIn");
-			return "login";
-		}
-*/
-
-			return "login";
+			return "activity";
 		
 	}
 
