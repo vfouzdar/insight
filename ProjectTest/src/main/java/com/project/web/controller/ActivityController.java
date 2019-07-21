@@ -51,10 +51,10 @@ public class ActivityController {
 			logger.info(activity.getUserId() + "----------------------------------------");
 			List<Activity> activityList = activityService.getUserActivity(activity);
 			
-			activityList.stream().forEach((act) -> logger.info(act.getActivityType().toString() + act.getId() + act.getCreateDate()));
+			// activityList.stream().forEach((act) -> logger.info(act.getActivityType().toString() + act.getId() + act.getCreateDate()));
 			activityForm.setUserId(user.getId());
 			activityForm.mapActivity(activityList);
-			
+			logger.info("Show all activities");
 			
 
 			return "activity";

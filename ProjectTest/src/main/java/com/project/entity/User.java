@@ -86,6 +86,7 @@ public class User {
 		setAge(userForm.getAge());
 		setAddress(userForm.getAddress());
 		setEmailId(userForm.getEmailId());
+		setId(userForm.getId());
 		
 	}
 	

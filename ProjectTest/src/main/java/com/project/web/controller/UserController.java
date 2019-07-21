@@ -45,7 +45,6 @@ public class UserController {
 
 		if (StringUtils.hasText(userIdentifier)) {
 			User user = new User();
-			Activity activity = new Activity();
 			
 			user.setEmailId(userIdentifier);
 
@@ -54,13 +53,7 @@ public class UserController {
 			userForm.mapUser(user);
 			
 			logger.info("##############set new activity------------");
-			activity.setActivityType(ActivityType.EDIT);
-			activity.setUserId(user.getId()); 
-			activity.setCreateDate(GregorianCalendar.getInstance().getTime());
-			logger.info("Set new activity---------------------------------");
-			activityService.saveNewActivity(activity);
-
-			
+		
 			return "editform";
 		} else {
 			bindingResult.rejectValue("emailId", "user.notLogged", "User Not LoggedIn");
@@ -78,10 +71,20 @@ public class UserController {
 		} else {
 
 			User user = new User();
+			Activity activity = new Activity();
+			
 			user.mapUserForm(userForm);
 			user = userService.updateUserByEmailId(user);
 			logger.info("##############/n/n/n Profile Updated");
 			userForm.mapUser(user);
+			
+			activity.setActivityType(ActivityType.EDIT);
+			activity.setUserId(user.getId()); 
+			activity.setCreateDate(GregorianCalendar.getInstance().getTime());
+			logger.info("Set new activity for edit--------------------------------");
+			activityService.saveNewActivity(activity);
+
+			
 			return "register_success";
 		}
 

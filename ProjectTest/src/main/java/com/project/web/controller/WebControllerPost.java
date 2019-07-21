@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,9 +42,18 @@ public class WebControllerPost implements WebMvcConfigurer {
 	// registry.addViewController("/login").setViewName("login");
 
 	@GetMapping("/")
-	public String showForm() {
-		logger.info("\n\n\n\n##########################Show Home Form");
-		return "homepage";
+	public String showForm(HttpSession session) {
+
+		String userIdentifier = (String) session.getAttribute(WebConstants.SESSION_EMAIL_ID);
+
+		logger.info("userIdentifier--------------" + userIdentifier);
+		if (userIdentifier != null && StringUtils.hasText(userIdentifier)) {
+			logger.info("\n\n\n\n########################## Redirecting to loggedin form");
+			return "redirect:/ShowLoggedInForm";
+		}
+		else
+			logger.info(" no session attribute showing homepage-------------------------");
+			return "homepage";
 	}
 
 	@GetMapping("/ShowLoginForm")
@@ -56,6 +66,40 @@ public class WebControllerPost implements WebMvcConfigurer {
 	public String showRegisterForm(UserForm userForm) {
 		logger.info("\n\n\n\n##########################Show Register Form");
 		return "register";
+
+	}
+
+	@GetMapping("/logout")
+	public String logoutUser(HttpSession session) {
+		logger.info("\n\n\n\n##########################Show logout/homepage Form");
+		session.removeAttribute(WebConstants.SESSION_EMAIL_ID);
+		session.invalidate();
+
+		logger.info("logging out user--------------------------");
+
+		return "redirect:/";
+	}
+
+	@GetMapping("/ShowLoggedInForm")
+	public String showEditForm(UserForm userForm, BindingResult bindingResult, HttpSession session) {
+		logger.info("\n\n\n\n##########################Show LoggedIn Form");
+		String userIdentifier = (String) session.getAttribute(WebConstants.SESSION_EMAIL_ID);
+		logger.info("\n\n\n\n########################## userIdentifier= " + userIdentifier);
+
+		if (StringUtils.hasText(userIdentifier)) {
+			User user = new User();
+
+			user.setEmailId(userIdentifier);
+
+			logger.info("##############/n/n/n Email available=" + userIdentifier);
+			user = userService.findUserByEmailId(user);
+			userForm.mapUser(user);
+
+			return "login_success";
+		} else {
+			bindingResult.rejectValue("emailId", "user.notLogged", "User Not LoggedIn");
+			return "redirect:/";
+		}
 
 	}
 

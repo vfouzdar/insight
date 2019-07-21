@@ -2,6 +2,7 @@ package com.project.repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,7 +56,7 @@ public class ActivityRepository implements CrudRepository<Activity, Integer> {
 		logger.info("Find Activity for user-------------------------");
 		List<Activity> activityList = new LinkedList<>();
 
-		String sqlFindActivity = "SELECT * from PROJECT_ACTIVITY where USER_ID = ?";
+		String sqlFindActivity = "SELECT * from PROJECT_ACTIVITY where USER_ID = ? order by DATE_CREATED desc";
 		Object[] args = { activity.getUserId() };
 
 		jdbcTemplate.query(sqlFindActivity, args, new ResultSetExtractor<List<Activity>>() {
@@ -69,10 +70,11 @@ public class ActivityRepository implements CrudRepository<Activity, Integer> {
 				while (rs.next()) {
 					Long uid = rs.getLong("Id");
 					String type = rs.getString("TYPE");
-					Date dateCreated = rs.getDate("DATE_CREATED");
+					Date dateCreated = rs.getTimestamp("DATE_CREATED");
 
 					activityResult = new Activity();
 					activityResult.setId(uid);
+					logger.info((new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")).format(dateCreated));
 					activityResult.setCreateDate(dateCreated);
 					activityResult.setActivityType(ActivityType.valueOf(type));
 

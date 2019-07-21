@@ -43,8 +43,10 @@ public class ActivityForm {
 		return "Activity [id=" + id + ", createDate=" + "]";
 	}
 
-	public void mapActivity(List<Activity> activityList){
+	public List<Activity> mapActivity(List<Activity> activityList){
 		
 		this.listAct = activityList;
+		listAct.stream().sorted();
+		return listAct;
 	}
 }
