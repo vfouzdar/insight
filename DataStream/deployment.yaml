@@ -13,7 +13,7 @@ spec:
         run: my-datastream
     spec:      
       containers:
-      - name: my-datastream
+      - name: my-app
         image: insanelyfreak/datastream
         ports:
         - containerPort: 8080
@@ -21,7 +21,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-datastream
+  name: my-service
 spec:
   selector:
     app: my-datastream
