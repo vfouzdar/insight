@@ -808,3 +808,4 @@ Practice:
     curl http://IP_FROM_PODS:8080/greeting
     kubectl scale --replicas=2 -f https://raw.githubusercontent.com/vfouzdar/insight/master/DataStream/deployment.yaml
     kubectl exec -it $(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}[0]' | head -1) /busybox/sh
+    kubectl get services kube-dns --namespace=kube-system
