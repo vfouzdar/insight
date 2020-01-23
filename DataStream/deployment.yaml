@@ -16,7 +16,9 @@ spec:
       - name: datastream-app
         image: insanelyfreak/datastream
         ports:
-        - containerPort: 8080
+        - name: http
+          containerPort: 80
+          protocol: TCP
 ---
 apiVersion: v1
 kind: Service
@@ -38,6 +40,8 @@ spec:
     # nodePort - a static port assigned on each the node
     # port - port exposed internally in the cluster
     # targetPort - the container port to send requests to
-    - nodePort: 30163
-      port: 8080
+    - name: http
+      protocol: TCP
+      nodePort: 30163
+      port: 80
       targetPort: 8080
