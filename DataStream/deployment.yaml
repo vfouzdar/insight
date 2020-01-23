@@ -39,3 +39,16 @@ spec:
       protocol: TCP      
       port: 80
       targetPort: 8080
+
+ingress:
+  class:
+    name: traefik
+    values:
+      traefik.frontend.rule.type: PathPrefixStrip
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: datastream-service
+          servicePort: 80
