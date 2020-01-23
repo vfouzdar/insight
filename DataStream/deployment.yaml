@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datastream-deployment
+spec:
+  selector:
+    matchLabels:
+      app: datastream-pods
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: datastream-pods
+    spec:      
+      containers:
+      - name: datastream-app
+        image: insanelyfreak/datastream
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datastream-service
+spec:
+  # Expose the service on a static port on each node  
+  type: NodePort
+
+  # Access from outside cluster use nodePort i.e. 30163
+  # Access inside cluster use port i.e. 9001
+  # Access inside Pod use targetPort: 8080
+  selector:
+    app: datastream-pods
+
+  ports:    
+    - name: http
+      protocol: TCP
+      nodePort: 30163
+      port: 9001
+      targetPort: 8080
