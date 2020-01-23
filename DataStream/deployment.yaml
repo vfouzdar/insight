@@ -5,12 +5,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: datastream-pods
+      app: datastream-pods
   replicas: 1
   template:
     metadata:
       labels:
-        run: datastream-pods
+        app: datastream-pods
     spec:      
       containers:
       - name: datastream-app
