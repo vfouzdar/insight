@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-datastream
+  name: datastream-deployment
 spec:
   selector:
     matchLabels:
-      run: my-datastream
+      run: datastream-pods
   replicas: 1
   template:
     metadata:
       labels:
-        run: my-datastream
+        run: datastream-pods
     spec:      
       containers:
-      - name: my-app
+      - name: datastream-app
         image: insanelyfreak/datastream
         ports:
         - containerPort: 8080
@@ -21,7 +21,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-service
+  name: datastream-service
 spec:
   # Expose the service on a static port on each node
   # so that we can access the service from outside the cluster 
@@ -31,13 +31,13 @@ spec:
   # "select pods with the label 'app' set to 'echo-hostname'"
   # and forward the request to one of them
   selector:
-    app: my-datastream
+    app: datastream-pods
 
   ports:
     # Three types of ports for a service
     # nodePort - a static port assigned on each the node
     # port - port exposed internally in the cluster
     # targetPort - the container port to send requests to
-    - nodePort: 8080
-      port: 8080 
-      targetPort: 80
+    - nodePort: 30163
+      port: 8080
+      targetPort: 8080
