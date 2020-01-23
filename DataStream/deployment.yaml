@@ -26,7 +26,7 @@ metadata:
   name: datastream-service
 spec:
   # Expose the service on a static port on each node  
-  type: NodePort
+  type: LoadBalancer
 
   # Access from outside cluster use nodePort i.e. 30163
   # Access inside cluster use port i.e. 9001
