@@ -26,7 +26,7 @@ metadata:
   name: datastream-service
 spec:
   # Expose the service on a static port on each node  
-  type: LoadBalancer
+  type: ClusterIP
 
   # Access from outside cluster use nodePort i.e. 30163
   # Access inside cluster use port i.e. 9001
@@ -36,7 +36,6 @@ spec:
 
   ports:    
     - name: http
-      protocol: TCP
-      nodePort: 30163
-      port: 9001
+      protocol: TCP      
+      port: 80
       targetPort: 8080
