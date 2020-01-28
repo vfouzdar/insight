@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datarelay-deployment
+spec:
+  selector:
+    matchLabels:
+      app: datarelay-pods
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: datarelay-pods
+    spec:      
+      containers:
+      - name: datarelay-app
+        image: insanelyfreak/datarelay
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datarelay-service
+spec:
+  # Expose the service on a static port on each node  
+  type: NodePort
+
+  selector:
+    app: datarelay-pods
+
+  ports:    
+    - name: http
+      protocol: TCP
+      nodePort: 30163
+      port: 9001
+      targetPort: 8081
