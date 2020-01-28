@@ -23,7 +23,7 @@ public class RelayController {
 	
 	private static Log log = LogFactory.getLog(RelayController.class);
 	
-	@Value("${DATASTREAM_SERVICE_PORT:tcp://localhost:9001}")
+	//@Value("${DATASTREAM_SERVICE_PORT:tcp://localhost:9001}")
 	private String streamServiceUrl;
 	
 	@Autowired
@@ -35,9 +35,9 @@ public class RelayController {
 		
 		log.debug("Inside Relay controller");
 		
-		String url = streamServiceUrl + "/greeting?name=From Relay";
+		String url = "http://datastream-service/greeting?name=From Relay";
 		
-		url = url.replace("tcp", "http");
+		//url = url.replace("tcp", "http");
 		
 		log.info("URL to call = " + url);
 		
