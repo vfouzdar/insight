@@ -7,7 +7,7 @@ import io.kubeless.Context;
 public class ReverseService {
     
     public String reverseStr(Event event, Context context) {
-       System.out.println("Event Data" + event.Data);
+       System.out.println("Event Data--> " + event.Data);
         try {
             System.out.println("Sleeping for 2s");
 			Thread.sleep(2000);
