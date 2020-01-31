@@ -1,0 +1,78 @@
+Kubeless:
+
+GENERIC:
+    Each function is deployed into a separate Kubernetes deployment
+    Deployed function is matched to a Kubernetes service using ClusterIP as the service
+    kubeless CLI reads given parameters and produces a Function object that it submits to the Kubernetes API server.
+    Kubeless Function Controller detects that a new Function has been created and reads its content. 
+    From the function content it generates (in order)
+        - ConfigMap: with the function code and its dependencies
+        - Service: to make the function reachable through HTTP
+        - Deployment: with the base image and all the required steps to install and run your functions. Deployment will not be created if any step/s before fails        
+    Every function receives two arguments: event and context
+        - event: contains information about the source of the event that the function has received
+        - context: contains general information about the function like its name or maximum timeout.
+    Functions returns a string that is used as the HTTP response for the caller. Few runtimes support objects as well
+    Default function execution timeout: 180s
+    Functions can be converted to Docker images and stored in registry
+    
+
+SCHEDULED_FUNCTION:
+    Internally created using Kubernetes CronJobs
+    
+
+DEBUG:
+    kubectl get pods -l function=foo
+    kubectl get pods -l function=foo -o yaml
+    kubectl logs foo-74978bbf45-9xb4p -c install --previous
+
+
+INSTALL:
+	export RELEASE=$(curl -s https://api.github.com/repos/kubeless/kubeless/releases/latest | grep tag_name | cut -d '"' -f 4)
+	echo $RELEASE
+    export OS=$(uname -s| tr '[:upper:]' '[:lower:]')
+    echo $OS
+	curl -OL https://github.com/kubeless/kubeless/releases/download/$RELEASE/kubeless_$OS-amd64.zip
+	unzip kubeless_$OS-amd64.zip
+	sudo mv bundles/kubeless_linux-amd64/kubeless  /usr/local/bin/
+	kubectl create ns kubeless
+    kubectl create -f https://github.com/kubeless/kubeless/releases/download/$RELEASE/kubeless-$RELEASE.yaml
+    kubectl get pods -n kubeless
+    kubectl get deployment -n kubeless
+    kubectl get customresourcedefinition
+    
+    export RELEASE=$(curl -s https://api.github.com/repos/kubeless/kafka-trigger/releases/latest | grep tag_name | cut -d '"' -f 4)
+    kubectl create -f https://github.com/kubeless/kafka-trigger/releases/download/$RELEASE/kafka-zookeeper-$RELEASE.yaml
+    kubectl -n kubeless get statefulset
+    kubectl -n kubeless get svc
+    kubeless function deploy reverse-hello --runtime java1.8 --handler ReverseService.reverseStr --from-file https://raw.githubusercontent.com/vfouzdar/insight/master/ReverseService.java
+    kubeless function call reverse-hello
+
+    kubeless function deploy reversedep-hello --runtime java1.8 --handler ReverseWithDep.reverseStr --from-file https://raw.githubusercontent.com/vfouzdar/insight/master/ReverseWithDep.java --dependencies https://raw.githubusercontent.com/vfouzdar/insight/master/pom.xml
+    kubeless function call reverse-hello
+    kubectl logs -l function=reversedep-hello
+    
+    
+    kubeless trigger kafka create test --function-selector created-by=kubeless,function=test --trigger-topic test-topic
+    kubeless topic create test-topic
+    kubeless topic publish --topic test-topic --data "Hello World!"
+    
+    
+    
+COMMANDS:
+    kubeless get-server-config
+    kubeless function deploy --help
+    kubeless function deploy get-java --runtime java1.8 --handler Foo.foo --from-file Foo.java --dependencies java/pom.xml --env MAVEN_OPTS='-DproxySet=true -DproxyHost=<proxy_host> -DproxyPort=<proxy_port>'
+    kubeless get functions
+    kubeless funciton ls
+    kubeless function call {function_name}
+    kubeless function delete {function_name}
+    kubectl get pods -l function=foo
+    AutoScale:
+        - kubeless autoscale list
+        - kubeless autoscale create
+        - kubeless autoscale delete
+        - kubeless autoscale --help
+    kubectl exec -it -n kubeless $(kubectl get pods -n kubeless -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}[0]' | grep controller-manager | head -1) -- bash
+    LOGS:
+        kubectl logs -n kubeless -l kubeless=controller -c kubeless-function-controller
