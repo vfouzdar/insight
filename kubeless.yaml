@@ -76,3 +76,10 @@ COMMANDS:
     kubectl exec -it -n kubeless $(kubectl get pods -n kubeless -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}[0]' | grep controller-manager | head -1) -- bash
     LOGS:
         kubectl logs -n kubeless -l kubeless=controller -c kubeless-function-controller
+        
+    DEBUG:
+        kubectl exec -it -n kubeless $(kubectl get pods -n kubeless -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}[0]' | grep rever | head -1) -- bash
+        cd kubeless [ java and pom files will be here]
+        cat /dev/termination-log
+        cat > ?/.m2/settings.xml
+        https://github.com/kubeless/kubeless/issues/964
