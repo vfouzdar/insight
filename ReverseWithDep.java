@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 
 
 public class ReverseWithDep {
-Logger logger = Logger.getLogger(ReverseService.class.getName());
+Logger logger = Logger.getLogger(ReverseWithDep.class);
     
     public String reverseStr(Event event, Context context) {
        System.out.println("Event Data--> " + event.Data);
