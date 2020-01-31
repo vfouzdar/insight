@@ -10,7 +10,7 @@ Logger logger = Logger.getLogger(ReverseService.class.getName());
     
     public String reverseStr(Event event, Context context) {
        System.out.println("Event Data--> " + event.Data);
-       logger.ingo("From Event Data--> " + event.Data);
+       logger.info("From Event Data--> " + event.Data);
 	//System.out.println("Request Data--> " + event.extensions.request);
         try {
             System.out.println("Sleeping for 2s");
