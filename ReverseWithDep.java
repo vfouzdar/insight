@@ -1,19 +1,28 @@
 package io.kubeless;
 
 import io.kubeless.Event;
-import io.kubeless.Context;
+
+import java.util.Map;
+
 import org.apache.log4j.Logger;
+
+import com.google.gson.Gson;
+
+import io.kubeless.Context;
 
 
 public class ReverseWithDep {
-Logger logger = Logger.getLogger(ReverseWithDep.class);
+	Logger logger = Logger.getLogger(ReverseWithDep.class);
     
     public String reverseStr(Event event, Context context) {
-       System.out.println("Event Data--> " + event.Data);
        logger.info("From Event Data--> " + event.Data);
 	
         try {
-            System.out.println("Sleeping for 2s");
+        	Gson gson = new Gson();
+        	Map<String, String> inputMap= gson.fromJson(event.Data, Map.class);
+        	
+        	logger.info("Json map " + inputMap);
+        	logger.info("Sleeping for 2s");
 			Thread.sleep(2000);
 		} catch (InterruptedException e1) {
 			System.out.println(e1);
