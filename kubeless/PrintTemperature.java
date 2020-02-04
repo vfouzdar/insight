@@ -1,12 +1,17 @@
 package io.kubeless;
 
-import io.kubeless.Event;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 
 import org.apache.log4j.Logger;
-import com.google.gson.Gson;
-import io.kubeless.Context;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import com.google.gson.Gson;
 
@@ -24,23 +29,42 @@ public class PrintTemperature {
 	public String getTemp(Event event, Context context) {
 		logger.info("From Event Data--> " + event.Data);
 
-		Gson gson = new Gson();
-		Map<String, String> inputMap = gson.fromJson(event.Data, Map.class);
+		try {
+			Gson gson = new Gson();
+			if (null != event.Data && event.Data.trim().length() > 0) {
+				Map<String, String> inputMap = gson.fromJson(event.Data, Map.class);
+				logger.info("Json map " + inputMap);
 
-		logger.info("Json map " + inputMap);
-		long start = System.currentTimeMillis();
-		logger.info("Start time in millis: " + System.currentTimeMillis());
-		long count = 0l;
-		for (long x = 0; x < Integer.MAX_VALUE; x++) {
-			count += 1;
+				Integer parallelCount = Integer
+						.valueOf(Objects.toString(inputMap.get(KEY_PARALLEL_THREAD), DEFAULT_THREAD_COUNT.toString()));
+				Integer numberOfCalls = Integer.valueOf(
+						Objects.toString(inputMap.get(KEY_NUMBER_OF_CALLS), DEFAULT_NUMBER_OF_CALLS.toString()));
+				String url = Objects.toString(inputMap.get(KEY_URL), DEFAULT_URL);
+
+				RestTemplate restTemplate = new RestTemplate();
+				ExecutorService executorService = Executors.newFixedThreadPool(parallelCount);
+				List<CompletableFuture<ResponseEntity<String>>> futureList = new ArrayList();
+				
+				IntStream.range(0, numberOfCalls).parallel().forEach(current -> {
+					CompletableFuture<ResponseEntity<String>> future = CompletableFuture
+							.supplyAsync(() -> callApi(current, restTemplate, url), executorService);
+					futureList.add(future);
+				});
+				logger.info("Before Join");
+				CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()])).join();
+				logger.info("After Join");
+			}
+		} catch (Exception e) {
+			logger.error("Error while getting temperature", e);
+			return "FAILURE";
 		}
-		
-		int temp = new Random().ints(0, 100).findAny().getAsInt();
-		logger.info("Temperature = " + temp);
-		
-		long end = System.currentTimeMillis();
-		logger.info("Processing time in millis: " + (end -start));
-		
-		return String.valueOf(temp);
+		return "SUCCESS";
+	}
+
+	private ResponseEntity<String> callApi(int current, RestTemplate restTemplate, String url) {
+		logger.info("Calling index= " + current);
+		ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+		logger.info("Response index= " + current);
+		return response;
 	}
 }
