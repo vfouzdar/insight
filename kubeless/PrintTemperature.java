@@ -37,7 +37,9 @@ public class PrintTemperature {
 
 				RestTemplate restTemplate = new RestTemplate();
 				
-				for(int current=0;current< numberOfCalls;current++){
+				logger.info("Number of calls to API=" + numberOfCalls);
+				
+				for(int current=0 ; current < numberOfCalls;current++){
 					callApi(current, restTemplate, url);
 				}
 				logger.info("After Join");
