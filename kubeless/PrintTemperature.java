@@ -35,7 +35,7 @@ public class PrintTemperature {
 						.valueOf(Objects.toString(inputMap.get(KEY_PARALLEL_THREAD), DEFAULT_THREAD_COUNT.toString()));
 				Integer numberOfCalls = Integer.valueOf(
 						Objects.toString(inputMap.get(KEY_NUMBER_OF_CALLS), DEFAULT_NUMBER_OF_CALLS.toString()));
-				String url = Objects.toString(inputMap.get(KEY_URL), DEFAULT_URL);
+				final String url = Objects.toString(inputMap.get(KEY_URL), DEFAULT_URL);
 
 				final RestTemplate restTemplate = new RestTemplate();
 				
