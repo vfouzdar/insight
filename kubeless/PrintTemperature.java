@@ -42,16 +42,10 @@ public class PrintTemperature {
 				String url = Objects.toString(inputMap.get(KEY_URL), DEFAULT_URL);
 
 				RestTemplate restTemplate = new RestTemplate();
-				ExecutorService executorService = Executors.newFixedThreadPool(parallelCount);
-				List<CompletableFuture<ResponseEntity<String>>> futureList = new ArrayList();
 				
 				IntStream.range(0, numberOfCalls).parallel().forEach(current -> {
-					CompletableFuture<ResponseEntity<String>> future = CompletableFuture
-							.supplyAsync(() -> callApi(current, restTemplate, url), executorService);
-					futureList.add(future);
+					callApi(current, restTemplate, url);
 				});
-				logger.info("Before Join");
-				CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()])).join();
 				logger.info("After Join");
 			}
 		} catch (Exception e) {
