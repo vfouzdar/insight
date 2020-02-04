@@ -37,7 +37,7 @@ public class PrintTemperature {
 						Objects.toString(inputMap.get(KEY_NUMBER_OF_CALLS), DEFAULT_NUMBER_OF_CALLS.toString()));
 				String url = Objects.toString(inputMap.get(KEY_URL), DEFAULT_URL);
 
-				RestTemplate restTemplate = new RestTemplate();
+				final RestTemplate restTemplate = new RestTemplate();
 				
 				logger.info("Number of calls to API=" + numberOfCalls);
 				
