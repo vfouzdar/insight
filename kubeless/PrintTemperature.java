@@ -2,6 +2,8 @@ package io.kubeless;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
 import org.springframework.http.ResponseEntity;
@@ -39,9 +41,24 @@ public class PrintTemperature {
 				
 				logger.info("Number of calls to API=" + numberOfCalls);
 				
-				for(int current=0 ; current < numberOfCalls;current++){
-					callApi(current, restTemplate, url);
+				
+				ExecutorService exec = Executors.newFixedThreadPool(parallelCount);
+				try {
+					for(int current=0 ; current < numberOfCalls;current++){
+						final Integer innerMi = new Integer(current);
+				        exec.submit(new Runnable() {
+				        	
+				            @Override
+				            public void run() {
+				            	callApi(innerMi, restTemplate, url);
+				            }
+				        });
+				    }
+				} finally {
+				    exec.shutdown();
 				}
+				
+				
 				logger.info("After Join");
 			}
 		} catch (Exception e) {
