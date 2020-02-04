@@ -43,9 +43,9 @@ public class PrintTemperature {
 
 				RestTemplate restTemplate = new RestTemplate();
 				
-				IntStream.range(0, numberOfCalls).parallel().forEach(current -> {
-					callApi(current, restTemplate, url);
-				});
+				
+					callApi(1, restTemplate, url);
+				
 				logger.info("After Join");
 			}
 		} catch (Exception e) {
