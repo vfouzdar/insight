@@ -18,6 +18,7 @@ public class BusyTempService {
 		Map<String, String> inputMap = gson.fromJson(event.Data, Map.class);
 
 		logger.info("Json map " + inputMap);
+		long start = System.currentTimeMillis();
 		logger.info("Start time in millis: " + System.currentTimeMillis());
 		long count = 0l;
 		for (long x = 0; x < Integer.MAX_VALUE; x++) {
@@ -27,7 +28,8 @@ public class BusyTempService {
 		int temp = new Random().ints(0, 100).findAny().getAsInt();
 		logger.info("Temperature = " + temp);
 		
-		logger.info("End time in millis: " + System.currentTimeMillis());
+		long end = System.currentTimeMillis();
+		logger.info("Processing time in millis: " + (end -start));
 		
 		return String.valueOf(temp);
 	}
