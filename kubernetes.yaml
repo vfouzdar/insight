@@ -1,0 +1,825 @@
+TODO:
+    Which API version should be used? (v1, extensions/v1beta1 etc.)
+    What are K8 headless services
+    Can Db be run in containerized env?
+    What is hostPort?
+    How are Secrets used?
+
+Challenges:
+    #1:
+        Context:
+            APP#1: Contains background job runs midnight
+            APP#2: Contains APIs which are deployed in multiple PODS and exposed using a loadbalancer service        
+        Issue:        
+            Interminent 404 on API calls. 
+            Pods/Ips becomes inaccessible for 30 sec or less than becomes available again.
+        Cause:
+            Firewall configuration refreshes the IPTable rules at midnight
+            kubectl syncs IPTables rules every 30s
+            After FW refreshes IP table rules, kubectl will create them again in 30s or less
+     
+        https://learnk8s.io/blog/kubernetes-chaos-engineering-lessons-learned/
+    
+BestPractices:
+
+
+Sample-Design:
+
+
+Install Options:
+    kind: K8 in Docker: 
+        used for learning env
+    minikube:
+        used for learning env
+        Single node K8 cluster
+K8 can:
+	Service Discovery:
+	Load Balance:
+	Storage orchestration: auto mount storage of choice like cloud, local etc
+    Rollback-Rollouts:
+    Self-Healing:
+    Secret/Config Management:
+
+K8 can NOT:
+    deploy code
+    source code management like CI-CD etc.
+    Application service like MQs, DB, Middleware etc. These can run inside K8
+    
+K8 Components:
+    Master (CASE):
+        Cluster's control center
+        Any node can become the master. Generally, node where scripts are run becomes the master
+        Not recommended to run any container on master node
+        
+        API-Server (A):
+            Provides apis to interact with K8
+        
+        etcd(E):
+            Highly-available key value store used as Kubernetes’ backing store for all cluster data
+        
+        kube-Scheduler(S):
+            Monitors for creation of new Pods and assigns them to nodes as per "Desired State"
+            
+        kube-controller-manager(C):
+            Master runs multiple controllers to monitor and control number of nodes, replicas, end-points etc.
+            Together these are called Controller-Manager
+            Maintains list of available nodes
+        
+        cloud-controller-manager:
+            controllers that interact with the underlying cloud providers
+    
+    Node-Components(CPK):
+        run on every node, maintaining running pods and providing the Kubernetes runtime environment
+        
+        kubelet:
+            An agent that runs on each node
+            Communicates with master
+            Ensures containers running in the node matches desired PodSpec
+            Does NOT manage containers that are NOT created by K8
+            
+        kube-proxy:
+            Agent runs on each node and is responsible for maintaining network rules for the node
+            
+        Container-Runtime:
+            runtime environment to run various containers like Docker, rktlet etc.
+            
+    Addons:
+        Provides cluster level features like DNS, Web-UI, Cluster-level Logging etc.
+    
+    Node:
+        Is a worker machine
+        It can be a VM or a physical machine
+        
+        NodeStatus
+        NodeLease
+        Management
+        API Object
+        
+        NodeStatus:
+            Is the heartbeat from the node to the master
+            Addresses:
+                HostName
+                ExternalIP
+                InternalIP
+            Conditions:
+                Describe status of current node like
+                Ready
+                OutOfDisk
+                MemoryPressure
+                PIDPressure
+                DiskPressure
+            Capacity and Allocatable:
+                Describes the resources available on the node like CPU, memory and the maximum number of pods that can be scheduled
+            Info:
+                General information about the node, such as kernel version, Kubernetes version (kubelet and kube-proxy version), Docker version (if used), and OS name
+        
+        NodeController:
+            Component which manages various aspects of nodes
+            Assigns a CIDR block to the node when it is registered
+            Keep upto date: node's internal list of nodes with Cloud provider
+            Monitor nodes health. Update NodeStatus
+            Kills all pods from node if node continues to be unreachable after configured time-period
+            
+        Hearbeats:
+            Sent by nodes.
+            Help determine the availability of the node in K8 cluster
+            2 types:
+                NodeStatus:
+                    
+                NodeLease:
+                    Objects in lease namespace
+                    These object is renewed by its node more frequently than a NodeStatus
+                    Recetnly, these are used to decide if a node is active or not
+        
+        
+        
+        Node-Management:
+            K8 creates a "Node" object which represents the real VM or physical machine
+            
+        API Object:
+            Is a top-level resource in the Kubernetes REST API
+        
+Node-Communications:
+    Cluster to Master:
+        All communication from cluster to master terminate at APIServer
+        Done using HTTPS
+        Secured by default using a certificate hence can be run over UNTRUSTED network
+        Pods can use ServiceAccount to connect to Master. This way K8 will automatically inject certificate and communication happens via HTTPs API
+    
+    Master to Cluster:
+        ApiServer to Kubelet:
+            from ApiServer to HTTPs end-point of kubelet
+            Should NOT be run over untrusted network as kubelet do not verify certifcate by default
+            To make it secure
+                Use flag to verify certifcate OR
+                SSH tunneling bw master and cluster OR
+                Enable kubelet authorization/authentication
+                            
+        ApiServer to nodes, pods, and services:
+            By default use HTTP
+            
+Controllers:
+    A control loop that regulates the state of a system
+    Tracks at least one Kubernetes resource type. Controller(s) for that resource are responsible for making the current state come closer to that desired state
+    2 Types:
+        Control via API server:
+            Manage state by interacting with the cluster API server. E.g. JobController                
+        Direct Control:
+            Controllers directly take action to take current state to desired state
+
+CloudControllerManager:
+    Interacts with Cloud specific vendor apis (AWS/Azure/GKE etc.)
+        Node controller:
+            Creates node object in K8 cluster when it receives info from Cloud vendor            
+        Route controller:
+            Configures routes, network such that K8 nodes can communicate with each other
+        Service controller:
+            Listens to service create, update, and delete events.
+            Configures load-balancers to reflext statue of services
+            
+Concepts:
+    User creates Kubernetes objects to request desired state for application, containers, replicas, network/disk resources etc.
+    "K8s Control Plane" tries to modify cluster such that its current state always matches user's request/desired state
+    
+    
+    PLEG: Pod Lifecycle Event Generator:
+        Function inside kubelet
+        Relisting: creates a list of current state of Pods and compares to their previous states
+        
+    K8s Master:
+        There components (ACS)
+        kube-apiserver:
+            Provides REST apis for cluster management
+            These apis are called by user to request a desired state
+            kube-controller-manager calls these apis to get current state of each node and if needed, calls other apis to modify current state to desired state
+        kube-controller-manager:
+            Daemon process
+            Brain of k8s
+            Calls apis to check current state of all objects
+            Compares current state with desired state and if needed, calls api to modify current state to match desired state
+        kube-scheduler:
+            
+    K8s Individual Node:
+        Runs 2 procesess
+        kubelet: 
+            Daemon runs on each node
+            Communicates with Master node
+            Works on PodSpec provided to it via API-server
+            Attempts to modify state of Pods such that it matches requested PodSpec
+            Also, manages containers running inside Pods
+            PodSpec an also be given to kubelet via
+                File: path described as a commandLine argument
+                Http EndPoint: Endpoint is described as a commandLine argument
+                Http server: 
+        kube-proxy: This proxy/process manages networking configuration for the node. 
+
+    Objects:
+        Name:
+            K8 objects can have a name that is unique for that Type in that namespace
+            Given by user in yaml (metadata -->name)
+        UID:
+            K8 give each object a Unique identifier in cluster
+            Are historically also unique
+        PODS:
+            Single unit of deployment
+            Smallest unit that can be deployed
+            A group of process running in cluster
+            Pods serve as unit of deployment, horizontal scaling, and replication
+            Pod is made of:
+                - One or more containers
+                - Their shared storage resources
+                - A Unique network IP
+                - Spec to manage the PODS in a certain way
+            K8s controller manages the POD and not the container/s running inside
+            Mostly one container per POD
+            Multiple containers per POD is used when 2 or more containers/applications are very tighly coupled. E.g. One updates files and one manages read access to files
+            Containers inside POD can communicate with each other using "locahost"
+            Each pod has an unique UID
+            
+            PodPhase:
+                Pod's status is stored in PodStatus object inside field "phase"
+                - Pending: accepted by K8 but no container has yet running/restarting
+                - Running: 
+                    - Pod has been bound to a node.
+                    - All containers have been created
+                    - At least one Container is running/starting/restarting
+                - Succeeded:
+                    - All containers in POD have terminated with NO error
+                - Failed:
+                    - All containers in pod have terminated and atleast one with failure
+                - Unknown:
+                    - if state of POd can NOT be obtained, then it is "Unknown"
+            
+            PodConditions:
+                PodStatus-->PodConditions
+                Array of 6 fields which stores info regarding Pod
+            
+            Conainers in POD share:
+                Network: 
+                    Each POD has a unique IP
+                    All containers also use the same IP
+                Storage:
+                    Storage volume defined for POD can be accessed by any container inside it
+            PodTemplate:
+                Pod specification which is used by controller to create POD in a node
+                Sample PodSpec:
+                    apiVersion: v1
+                    kind: Pod
+                    metadata:
+                      name: myapp-pod
+                      labels:
+                        app: MyApp
+                    spec:
+                      containers:
+                      - name: myapp-container
+                        image: busybox
+                        command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+            
+            RestartPolicy:
+                Exited Containers are restarted by kubelet with an exponential back-off delay (10s, 20s, 40s …) capped at 5min, and is reset after 10min of successful execution
+                Always: default
+                OnFailure:
+                Never: 
+            
+            PodPreset:
+                Objects for injecting certain information into pods at creation time
+                Label selectors can be used to find all pods where PodPreset needs to be applied
+                AdmissonController, when enabled, applies PodPreset to incoming pod creation request
+                    - Retrieve all PodPresets available for use
+                    - Check if the label selectors of any PodPreset matches the labels on the pod being created
+                    - Merge the various resources defined by the PodPreset into the Pod being created
+                    - Annotate modified Pod spec to indicate it was modified by a PodPreset. 
+                        - podpreset.admission.kubernetes.io/podpreset-<pod-preset name>: "<resource version>"
+                    - On error, Create the pod without any injected resources from the PodPreset
+                Specific pod can be excluded by adding "exclude flag" in PodSpec    
+            
+            PodTopologySpreadConstraints:
+                Controls how Pods are distributed in nodes across cluster
+                
+            PodDisruption:
+                Disruption is a condition where pod get killed/removed voluntararily or in-voluntararily.
+                Volunterarily:
+                    When admin removes/kills pod using K8 controller or Cloud-colntrollers
+                In-Voluntararily:
+                    When pod gets removed/killed due to un-controllable situiations like, hardware/software failure etc.
+                
+                PodDistributionBudget (PDB):
+                    Spec which will allow/limit min/max number of Pod to be un-available due to any kind of disrution
+                    PDB will block admin (controller) commands to bring further pods down if it violates PDB conditions
+                    
+            Taints & Toleration:
+                 Are used to repel a set of pods to be scheduled on a set of node/s
+                 One or more taints are applied to a node; this marks that the node should not accept any pods that do not tolerate the taints
+                 Tolerations are applied to pods, and allow (but do not require) the pods to schedule onto nodes with matching taints
+                 
+            Pod Priority and Preemption:
+                Priority indicates the importance of a Pod relative to other Pods
+                If a Pod cannot be scheduled, the scheduler tries to preempt (evict) lower priority Pods 
+                Preemption: remove existing pods to make space for a new pod with higher priority
+            
+        CONTROLLER:
+            - ReplcaSet
+            - ReplicaController
+            - Deployments
+            - StatefulSets
+            - DaemonSet
+            - GarbageCollection
+            - TTLController for finished resources
+            - Jobs
+            - CronJob
+            
+            ReplicaSet:
+                This controller ensures a specified number of replica/identical pods are running
+                ReplicaSet consists of:
+                    - Selector: that specifies how to identify Pods that can be used
+                    - Number: number of replica
+                    - PodTemplate: template to create Pods
+                Selector will find all pods with given label, even if it is not created by K8s. This may affect "count" of replicas
+                Use "ReplicaSet" for tasks/applications that do not terminate (webserver, application etc.)
+                Shortcut "rs"
+                    
+                    
+                SAMPLE:
+                    apiVersion: apps/v1
+                    kind: ReplicaSet
+                    metadata:
+                      name: frontend
+                      labels:
+                        app: guestbook
+                        tier: frontend
+                    spec:
+                      # modify replicas according to your case
+                      replicas: 3
+                      selector:
+                        matchLabels:
+                          tier: frontend
+                      template:
+                        metadata:
+                          labels:
+                            tier: frontend
+                        spec:
+                          containers:
+                          - name: php-redis
+                            image: gcr.io/google_samples/gb-frontend:v3
+            
+            ReplicationController:
+                Older version of ReplicaSet, except it does not have "set-based label selector"
+
+            Deployments:
+                A full set of configuration to deploy pods and application across cluster. This can include Pods, ReplicaSets etc.
+                By default, it ensures that at least 75% of the desired number of Pods are up (25% max unavailable)
+                By default, it ensures that at most 125% of the desired number of Pods are up (25% max surge).
+                Canary Deployment: 
+                    "Canary": a smaller "test" version to check if new changes are working (Ginnie pig)
+                    
+                
+                SAMPLE:
+                    apiVersion: apps/v1
+                    kind: Deployment
+                    metadata:
+                      name: nginx-deployment
+                      labels:
+                        app: nginx
+                    spec:
+                      replicas: 3
+                      selector:
+                        matchLabels:
+                          app: nginx
+                      template:
+                        metadata:
+                          labels:
+                            app: nginx
+                        spec:
+                          containers:
+                          - name: nginx
+                            image: nginx:1.7.9
+                            ports:
+                            - containerPort: 80
+            
+            StatefulSets:
+                Used to manage stateful applications
+                Manages deployment and scaling of a set of Pods, and guarantees the order and uniqueness of Pods
+                StatefulSet maintains a sticky identity for each of their Pod
+                Deleting and/or scaling down a StatefulSet will not delete the volumes associated with it
+                Needs a Headless service to identify pods in network
+                Do not guarantee pod deletion when StafulSet is deleted. Instead, scale down to 0 and then delete
+                Order of start web-0, web-1, web-2. If web-0 fails after start but before web-2 starts then web-2 will wait untill web-0 restarts
+                Order of stop N--> 0 (same as above)
+                
+            DaemonSet:
+                Ensures that all (or some) Nodes run a copy of a Pod. E.g. 
+                     - logs collection daemon on every node, such as fluentd or logstash.
+                     - monitoring daemon Prometheus
+                     
+            GarbageCollector:
+                Delete certain objects that once had an owner, but no longer have an owner
+                ForegroundCascadingDelete:
+                    Root object first enters a “deletion in progress” state
+                    GC deletes dependent objects
+                    GC deletes root object
+                BackgroundCascadingDelete:
+                    GC deletes root objects immediately
+                    Orphan objects are deleted by GC in background
+             
+            JobController:
+                Type of controller to be used for tasks which runs to completion
+                Allows to specify retries for failure at container/pod level
+                Allows parallel run, fork join type of run etc.
+                
+            CronJobs:
+                Job that will run at specified times/dates, similar to the Unix tool cron
+        
+        SERVICES_LOAD_BALANCING_NETWORKING:
+            SERVICE:
+                Abstract way to expose an application running on a set of pods as a network service.
+                Services are Proxies that exposes one or more PODS to be accessed via load-balancer
+                Deployment is responsible for keeping a set of pods running.
+                Service is responsible for enabling network access to a set of pods.
+                Service provide a face (facade) to "caller"
+                PODS behind the service (load-balancer) can change/detroy/add without affecting the pre-defined agreement to access them
+                RECOMMENDED:
+                    Create service before pod/s
+                    
+                Service can be created using ServiceSpec:
+                    apiVersion: v1
+                    kind: Service
+                    metadata:
+                      name: my-service
+                    spec:
+                      selector:
+                        app: MyApp
+                      ports:
+                      - protocol: TCP
+                        port: 80
+                        targetPort: 9376
+                Above specification will create 
+                    A new Service object named “my-service” which targets TCP port 9376 on any Pod with the "app=MyApp" label
+                    Will be assigned an IP address (sometimes called the “cluster IP”), which is used by the service proxies
+                    Controller will create "EndPoint" objects to map above source-target
+                Service can map any incoming port to a targetPort. By default, and for convenience, the targetPort will be set to the same value as the port field.    
+                Default protocol for services is TCP
+                
+                kubectl expose deployment/my-nginx:
+                    Above command is same as running kubectl apply -f the following yaml
+                        apiVersion: v1
+                        kind: Service
+                        metadata:
+                          name: my-nginx
+                          labels:
+                            run: my-nginx
+                        spec:
+                          ports:
+                          - port: 80
+                            protocol: TCP
+                          selector:
+                            run: my-nginx
+                        
+                
+                kube-proxy takes the SessionAffinity setting of the Service into account when deciding which backend Pod to use:
+                    SessinAffinity can be set by ClientIP and also a maxTimeout can be set
+                
+                Service with NO selector:
+                    In such case, "selector" is not mentioned in ServiceSpec
+                    User has to manually create EndPointSpec and update "Service"
+                    Below is sample, in addition to above ServiceSpec. Calls to SERVICE_IP:80 will be routed to 192.0.2.42:9376
+                        apiVersion: v1
+                        kind: Endpoints
+                        metadata:
+                          name: my-service
+                        subsets:
+                          - addresses:
+                              - ip: 192.0.2.42
+                            ports:
+                              - port: 9376
+                
+                Service Discovery:
+                    2 ways to discover are EnvVariables and DNS.
+                    EnvironmentVariables:
+                        When a service is created in a node, the kubelet creates 2 (or more) Environment variables i.e.
+                        - ${SVC_NAME}_SERVICE_HOST=IP_ADDRESS of the service
+                        - ${SVC_PORT}_SERVICE_PORT=Port exposed by the service
+                        Other PODs running in cluster/node can use above environment variable to access the Service
+                        
+                        RESTRICTION: Client PODs (which access Service), should be created after Service has been created
+                        
+                    DNS:
+                        A DNS servver is recommended for each K8s cluster
+                        Can be added using K8s addOn like CoreDNS
+                        ClusterAware DNS server listen to any new Service create event and updates itself with new Service's info
+                        Clients can query DNS for a "Service-Name" and DNS server will return corresponding IPs/Ports
+                        <service-name>.<namespace-name>.svc.cluster.local
+                        
+                Types of Services:
+                    - ClusterIP
+                    - NodePort
+                    - LoadBalancer
+                    - ExternalName
+                    ClusterIP:
+                        Default Type
+                        Exposes the service only to internal to the Cluster
+                        Can not be accessed from outside any POD (cluster)
+                    NodePort:
+                        Exposes service as at given port of the NODE (VM/machine)
+                        Accessible from outside cluster
+                    LoadBalancer:
+                        Exposes service using Cloud provided loadBalancer                    
+                    ExternalName:
+                        Maps the Service to the contents of the externalName field
+                        Maps a Service to a DNS name
+                        
+            EndPointSlices:
+                EndPoint object contains a set of network end-points to all pods which hosts given service
+                EndPointSlice: 
+                    - Subset or a smaller group of network end-points for a given service. 
+                    - Complete list of end-points can be formed by combining one or more such endPoint slices
+                Helps to reduce network load if one or more pod network info (end-point info) is modified
+                    
+            
+            ServiceTopology:
+                Allows to route request to Service to be routed to Nodes/Pods in specific availability zones etc.
+                Reduces costs and latency
+                Pre-requisite:
+                    EndPointSlices should be enabled
+                    Kube-proxy should be in ipTable mode
+                    K8 1.17 or higher
+                Can be enabled by specifying "topologyKeys" in ServiceSpec
+            
+            DNSServer:
+                K8 create DNS pod and a service
+                Kubelets are instructed to ask their containers to use DNS service to resolve host names
+                All services deployed in cluster gets a DNS name
+                Service named "foo" in the Kubernetes namespace "bar". Pod running in namespace "bar" can look up this service by simply doing a DNS query for "foo"
+                Pod running in namespace "quux" can look up this service by doing a DNS query for "foo.bar".
+                
+            ConnectingApplicationWithServices:
+                Pods can communicate with other pods, regardless of host
+                Each pod has its own cluster-private-IP address 
+                Containers within a pod can use "localhost" to access other container in SAME pod
+                All pods in a cluster can see each other without NAT
+                
+            INGRESS:
+                Allows to expose K8 services to be accessible from internet
+                Provide external access to the services in a cluster, typically HTTP.
+                Provides load balancing, SSL termination and name-based virtual hosting
+                IngressController is responsible for configuring Ingress
+                Ingress controllers are not started automatically with a cluster
+                Kubelet manages the hosts file for each container of the Pod to prevent Docker from modifying the file after the containers have already been started
+            
+            
+        STOARGE::
+            VOLUME:
+                Lifetime is same as that of Pod hence, data on volume can be preserved across "Container" restarts
+                Volumes can not mount onto other volumes or have hard links to other volumes. 
+                Each Container in the Pod must independently specify where to mount each volume.
+                
+                awsElasticBlockStore:
+                    mounts an Amazon Web Services (AWS) EBS Volume into your Pod
+                    Contents of an EBS volume are preserved and the volume is merely unmounted. 
+                    EBS volume can be pre-populated with data, and that data can be “handed off” between Pods
+                    Sample:
+                        apiVersion: v1
+                        kind: Pod
+                        metadata:
+                          name: test-ebs
+                        spec:
+                          containers:
+                          - image: k8s.gcr.io/test-webserver
+                            name: test-container
+                            volumeMounts:
+                            - mountPath: /test-ebs
+                              name: test-volume
+                          volumes:
+                          - name: test-volume
+                            # This AWS EBS volume must already exist.
+                            awsElasticBlockStore:
+                              volumeID: <volume-id>
+                              fsType: ext4
+            PERSISTENT:
+                PersistentVolume (PV):
+                    Storage in the cluster that has been provisioned by an administrator or dynamically provisioned using "Storage Classes"
+                    Independent of Pod-lifecycle
+                    
+                PersistentVolumeClaim:
+                    Request by a Pod/user to use certain PV (CPU/Memory etc.)
+                
+            STORAGE CLASS:
+                Different types of storage offered in a K8 cluster
+                Create a K8 spec just like Deployment/Service/Pod etc. and use vendor provided service to create the storage
+                
+
+        
+        
+        NAMESPACE:
+            Partition a K8 cluster (virtually)
+            Allow a K8 clster to use for several purposes. E.g. Dev, UAT, Prod etc.
+            Can NOT be nested inside one another
+            Low-level resources, such as nodes and persistentVolumes, are not in any namespace
+            Be default, 3 namespaces:
+                default: For objects with no namespace 
+                kube-system: objects created by K8 system
+                kube-public: READONLY. Store public objects such as Cluster usage etc. All users can
+                
+        LABELS:
+            metadata->labels
+            key-value pair which are attached to a K8 object            
+            For end user, ease of accessibility. Used as identifying attribute            
+            Can be used by user to group K8 objects
+            Does not used by K8 controller/system            
+            Label selectors:
+                Equality based:
+                    environment = production 
+                    tier != frontend
+                    API: ?labelSelector=environment%3Dproduction,tier%3Dfrontend
+                    kubectrl: kubectl get pods -l environment=production,tier=frontend
+                Set-based:
+                    environment in (production, qa):?labelSelector=environment+in+%28production%2Cqa%29%2Ctier+in+%28frontend%29
+                    tier notin (frontend, backend)
+                Can be made of multiple requirements which are comma-separated (i.e. logicall AND &&)
+        
+        Annaotaions:
+            metadata-> annotations
+            key-value pair similar to Labels but can NOT be used to identify/query objects
+            Adds additional attributes to objects which can be used by tools or libraries
+            Build, release, or image information like timestamps, release IDs, git branch, PR numbers, image hashes, and registry address
+            EmployeeId, Phone or pager numbers of persons responsible
+            
+        FIELD SELECTORS:
+            Allows to select K8 resources based on value of one or more resource fields. e.g.
+            - metadata.name=my-service
+            - metadata.namespace!=default    
+            kubectl get pods --field-selector status.phase=Running
+    
+    Container:
+        Pod is assigned to a node by scheduler and then kubelet starts creating containers using container runtime
+        
+        Lifecycle Hooks:
+            Kubelet managed Containers can use Container lifecycle hook framework to run code triggered by lifecycle events
+            PostStart:
+                Executes immediately after a container is created
+                No guarantee that hook will execute before container ENTRYPOINT
+                No parameters are passed
+                If a handler fails, it broadcasts FailedPostStartHook event
+            PreStop:
+                Immediately before a container is terminated due to an API request or management event such as liveness probe failure, preemption, resource contention etc.
+                It is blocking, it must complete before the call to delete the container can be sent
+                No parameters are passed to the handler
+                If a handler fails, it broadcasts FailedPreStopHook event
+            Two types of handler:
+                - Exec - Executes a specific command, such as pre-stop.sh, inside the cgroups and namespaces of the Container. Resources consumed by the command are counted against the Container.
+                - HTTP - Executes an HTTP request against a specific endpoint on the Container
+                
+        ContainerProbes:
+            Diagnostics performed periodically by kubelet on a Container
+            Kubelet calls "handler" implemented by Container
+            Types of handlers:
+                ExecAction: Executes a specified command inside the Container. The diagnostic is considered successful if the command exits with a status code of 0
+                TcpAction: Performs a TCP check against the Container’s IP address on a specified port. The diagnostic is considered successful if the port is open
+                HttpAction: HTTP Get request against the Container’s IP address on a specified port and path. Success if response is >= 200 and < 400
+        
+        ContainerStates:
+            Waiting: default state
+            Running:
+            Terminated:
+            
+        Init-Container:
+            Init containers run and complete before the app containers are started
+            Always run to completion
+            Runs one after other
+            If one of init container fails, then K8 will restart the pod
+            Can be given access to Secrets that app containers cannot access
+            Pod that is initializing remains in Pending state but have PodCondition "Initialized=true"
+        
+        App-Container:
+        
+        EphemeralContainers:
+            Runs temporarily in an existing Pod to accomplish user-initiated actions like debug application, inspect services etc.
+            
+    COMPUTE RESOURCES:
+        CPU and memory are collectively referred to as compute resources, or just resources
+        Compute resources are measurable quantities that can be requested, allocated, and consumed
+        They are different from API resources, such as Pods and Services, which are objects that can be read and modified through the Kubernetes
+        
+        CPU Resource:
+            CPU resources are measured in cpu units
+            Fractional requests are allowe i.e. 0.1 is equivalent t0 100m (milli) CPU.
+            Less than milli is not allowed
+            0.1 is the same amount of CPU on a single-core, dual-core, or 48-core machine
+        
+        Memory Resources:
+            Limits and requests for memory are measured in bytes or using one of these suffixes E, P, T, G, M, K
+            
+    
+    SECRETS:
+        Secret objects let you store and manage sensitive information, such as passwords, OAuth tokens, and ssh keys
+        Any Pod which needs a "secret" has to specify it in the Deployment/POD spec. API-Server will send secret to it during Pod creation
+        Secret contains two maps i.e.
+            - data: store base64 encoded string
+            - stringData: store random non-encoded string literals
+        If a field is specified in both data and stringData, the value from stringData is used
+        Secrets can be mounted as data volumes or be exposed as environment variables to be used by a container in a pod
+        
+        Built-in Secrets:
+            Kubernetes automatically creates secrets which contain credentials for accessing the API and it automatically modifies your pods to use this type of secret.
+        
+        User Secrets:
+            kubectl create secret generic db-user-pass --from-file=./username.txt --from-file=./password.txt
+        
+    Policy:
+        Resource Quotas:
+            Set resource consumption limit at namespace level/
+            Within a namespace, a Pod or Container can consume as much CPU and memory as defined by the namespace’s resource quota
+            Can be handy when multiple teams are sharing cluster
+            
+        Limit Ranges:
+            Limit Range is a policy to constrain resource by Pod or Container in a namespace
+                - Enforce minimum and maximum compute resources usage per Pod or Container in a namespace.
+                - Enforce minimum and maximum storage request per PersistentVolumeClaim in a namespace.
+                - Enforce a ratio between request and limit for a resource in a namespace.
+                - Set default request/limit for compute resources in a namespace and automatically inject them to Containers at runtime.
+
+        Pod Security Policy:
+            Fine-grained authorization of pod creation and updates
+            
+        
+    kubeadm:
+        Used to do admin tasks on API server
+        K8 installs default certificates during installation. For most Orgs this should be enough. Customer cert can be configured, if needed.
+        Only Allows upgrade from one MINOR version to the next MINOR version. Can NOT be skipped
+        
+    Metrics-Server:
+        Server provides various metrics associated with pods, nodes etc.
+        Can be used for auto-scalling
+        
+    HorizontalPodAutoscaler (HPA):
+        Uses metrics provided by metrics.k8s.io, custom.metrics.k8s.io, OR/AND external.metrics.k8s.io to scale a deployment up or down
+        desiredReplicas = ceil[currentReplicas * ( currentMetricValue / desiredMetricValue )]
+        If a particular Pod is missing metrics, it is set aside for later; Pods with missing metrics will be used to adjust the final scaling amount.
+        
+    
+    
+Commands:
+    Logs:
+        Get logs from all pods using label selector: kubectl logs  -l app=backend
+        kubectl logs {APP_NAME} -c {CONTAINER_NAME} # Inspect the first init container
+    Pods:
+        Get all pods: 
+            kubectl get pods
+            kubectl get pods --namespace=<insert-namespace-name-here>
+            Check state of container: kubectl describe pod [POD_NAME]            
+        High level debugging: kubectl describe pods ${POD_NAME}
+        Pod Information: kubectl get pods ${POD_NAME} -o yaml
+        See pod label: kubectl get pods --show-labels
+    Node:
+        kubectl describe node <insert-node-name-here>
+    
+    Namespace:
+        Get all namespaces: kubectl get namespace
+        Set namespace for current context: kubectl config set-context --current --namespace=<insert-namespace-name-here>
+        Show namespace: kubectl config view --minify | grep namespace:
+        
+    Labels:
+        kubectl get pods -l environment=production,tier=frontend
+        
+    FieldSelector:
+        kubectl get pods --field-selector status.phase=Running
+    
+    Deployment:
+        kubectl describe deployments
+        Deploy to cluster: kubectl apply -f PATH_TO_FILE
+        Record K8s commands: kubectl apply -f PATH_TO_FILE -record
+        Get all deplyments: kubectl get deployments
+        Scale: kubectl scale deployment.v1.apps/nginx-deployment --replicas=10
+        
+    Secrets:
+        kubectl get secrets
+        kubectl describe secrets/{SECRET_NAME}
+        kubectl create secret generic db-user-pass --from-file=./username.txt --from-file=./password.txt
+        
+    General:
+        kubectl run curl --image=radial/busyboxplus:curl -i --tty: Interactive unix shell
+        
+    DNS:
+        Check DNS is on: kubectl get services kube-dns --namespace=kube-system
+        
+
+Practice:      
+    kubectl get pods
+    kubectl get deployments
+    kubectl apply -f https://raw.githubusercontent.com/vfouzdar/insight/master/DataStream/deployment.yaml
+    kubectl get pods -o wide
+    kubectl get services
+    kubectl get deployments
+    curl http://IP_FROM_PODS:8080/greeting [http://{SERVICE_NAME} will be accessible from inside one of container running inside cluster]
+    kubectl scale --replicas=2 -f https://raw.githubusercontent.com/vfouzdar/insight/master/DataStream/deployment.yaml
+    kubectl run curl --image=radial/busyboxplus:curl -i --tty: Interactive unix shell
+    kubectl exec -it $(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}[0]' | head -1) /busybox/sh
+    kubectl get services kube-dns --namespace=kube-system
+    kubectl apply -f https://raw.githubusercontent.com/vfouzdar/insight/master/DataRelay/deployment_relay.yaml
+    kubectl get hpa -o wide
+    Install metric server:
+        git clone https://github.com/kubernetes-sigs/metrics-server.git
+        kubectl create -f metric-server/deploy/1.8+/
+    while true; do wget -q -O- http://php-apache.default.svc.cluster.local; done
+    kubectl get deployment -o wide    
+    kubectl get ing [Ingress]
+    kubectl -n kubeless exec -it kubeless-controller-manager-df8bb99b6-bztzn -- bash
