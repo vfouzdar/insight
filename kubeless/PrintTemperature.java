@@ -1,13 +1,7 @@
 package io.kubeless;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.IntStream;
 
 import org.apache.log4j.Logger;
 import org.springframework.http.ResponseEntity;
@@ -43,9 +37,9 @@ public class PrintTemperature {
 
 				RestTemplate restTemplate = new RestTemplate();
 				
-				
-					callApi(1, restTemplate, url);
-				
+				for(int current=0;current< numberOfCalls;current++){
+					callApi(current, restTemplate, url);
+				}
 				logger.info("After Join");
 			}
 		} catch (Exception e) {
