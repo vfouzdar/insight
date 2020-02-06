@@ -16,7 +16,7 @@ public class PrintTemperature {
 
 	private final static Integer DEFAULT_THREAD_COUNT = 10;
 	private final static Integer DEFAULT_NUMBER_OF_CALLS = 10;
-	private final static String DEFAULT_URL = "http://getTemp/getTemp";
+	private final static String DEFAULT_URL = "http://gettemp:8080/gettemp";
 
 	private final static String KEY_PARALLEL_THREAD = "parallel";
 	private final static String KEY_NUMBER_OF_CALLS = "callCount";
