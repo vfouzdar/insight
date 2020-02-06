@@ -25,6 +25,11 @@ public class BusyTempService {
 			count += 1;
 		}
 		
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			logger.error("Interrupted from sleep", e);
+		}
 		int temp = new Random().ints(0, 100).findAny().getAsInt();
 		logger.info("Temperature = " + temp);
 		
