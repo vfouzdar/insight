@@ -207,7 +207,7 @@ data:
     "phase": "installation"}, {"image": "kubeless/go@sha256:27bf0dfd1633e50c02f0fe8aed079571a4001126206aaa89ee024c26b94999fe",
     "phase": "runtime"}], "name": "go1.12", "version": "1.12"}]}, {"ID": "java", "depName":
     "pom.xml", "fileNameSuffix": ".java", "versions": [{"images": [{"command": "/compile-function.sh",
-    "image": "kubeless/java-init@sha256:5f2e7227998799469c2b7ec6102aee5fbef715465c97448f1bdc91c4160d0baf",
+    "image": "insanelyfreak/kubeless-java1.8",
     "phase": "compilation"}, {"image": "insanelyfreak/kubeless-java1.8",
     "phase": "runtime"}], "name": "java1.8", "version": "1.8"}, {"images": [{"command":
     "/compile-function.sh", "image": "kubeless/java-init@sha256:1f36ed53e882a15388dd5d437d8f659f0bad38810669b195e0446ee595498c75",
