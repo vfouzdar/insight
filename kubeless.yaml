@@ -29,28 +29,45 @@ DEBUG:
 
 INSTALL:
 	export RELEASE=$(curl -s https://api.github.com/repos/kubeless/kubeless/releases/latest | grep tag_name | cut -d '"' -f 4)
-	echo $RELEASE
+    echo $RELEASE
     export OS=$(uname -s| tr '[:upper:]' '[:lower:]')
     echo $OS
-	curl -OL https://github.com/kubeless/kubeless/releases/download/$RELEASE/kubeless_$OS-amd64.zip
-	unzip kubeless_$OS-amd64.zip
-	sudo mv bundles/kubeless_linux-amd64/kubeless  /usr/local/bin/
-	kubectl create ns kubeless
+    curl -OL https://github.com/kubeless/kubeless/releases/download/$RELEASE/kubeless_$OS-amd64.zip
+    unzip kubeless_$OS-amd64.zip
+    sudo mv bundles/kubeless_linux-amd64/kubeless  /usr/local/bin/
+    kubectl create ns kubeless
     kubectl create -f https://github.com/kubeless/kubeless/releases/download/$RELEASE/kubeless-$RELEASE.yaml
     kubectl get pods -n kubeless
     kubectl get deployment -n kubeless
     kubectl get customresourcedefinition
-    
+
     export RELEASE=$(curl -s https://api.github.com/repos/kubeless/kafka-trigger/releases/latest | grep tag_name | cut -d '"' -f 4)
     kubectl create -f https://github.com/kubeless/kafka-trigger/releases/download/$RELEASE/kafka-zookeeper-$RELEASE.yaml
     kubectl -n kubeless get statefulset
     kubectl -n kubeless get svc
-    kubeless function deploy reverse-hello --runtime java1.8 --handler ReverseService.reverseStr --from-file https://raw.githubusercontent.com/vfouzdar/insight/master/ReverseService.java
-    kubeless function call reverse-hello
 
-    kubeless function deploy reversedep-hello --runtime java1.8 --handler ReverseWithDep.reverseStr --from-file https://raw.githubusercontent.com/vfouzdar/insight/master/ReverseWithDep.java --dependencies https://raw.githubusercontent.com/vfouzdar/insight/master/pom.xml
-    kubeless function call reverse-hello
-    kubectl logs -l function=reversedep-hello
+    kubeless function deploy gettemp --runtime java1.8 --handler BusyTempService.getTemp --from-file https://raw.githubusercontent.com/vfouzdar/insight/master/kubeless/BusyTempService.java --dependencies https://raw.githubusercontent.com/vfouzdar/insight/master/kubeless/pom.xml
+    kubeless function call gettemp
+    kubectl logs -l function=gettemp
+
+    kubeless function deploy printtemp --runtime java1.8 --handler PrintTemperature.getTemp --from-file https://raw.githubusercontent.com/vfouzdar/insight/master/kubeless/PrintTemperature.java --dependencies https://raw.githubusercontent.com/vfouzdar/insight/master/kubeless/pom.xml
+
+    kubeless function call gettemp
+
+    kubeless function call printtemp
+    kubectl logs -l function=printtemp
+    kubeless function call printtemp --data "{'url':'http://gettemp:8080/gettemp','callCount':'1000', 'parallel':'50'}"
+
+
+    kubectl get services -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}[0]' | grep controller-manager | head -1
+
+    kubectl exec -it $(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}[0]' | grep print | head -1) -- bash
+
+
+    kubeless trigger kafka create test --function-selector created-by=kubeless,function=test --trigger-topic test-topic
+    kubeless topic create test-topic
+    kubeless topic publish --topic test-topic --data "Hello World!"
+    https://raw.githubusercontent.com/vfouzdar/insight/master/kubeless/BusyTempService.java
     
     
     kubeless trigger kafka create test --function-selector created-by=kubeless,function=test --trigger-topic test-topic
@@ -83,3 +100,36 @@ COMMANDS:
         cat /dev/termination-log
         cat > ?/.m2/settings.xml
         https://github.com/kubeless/kubeless/issues/964
+        
+        
+        
+DEV_ENVIRONMENT:
+echo "CHECK SUDO"
+apt-get update
+su -
+apt-get install sudo -y
+usermod -aG sudo root
+su root
+
+echo "INSTALL GO"
+cd /usr/local/
+curl -O https://dl.google.com/go/go1.12.16.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.12.16.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+go
+
+"Download Kubeless SourceCode"
+apt install gox
+cd /usr/local/
+export GOROOT=/usr/local/go
+export GOPATH=/usr/local/go/bin
+export PATH=$GOPATH:$PATH
+export KUBELESS_WORKING_DIR=$GOROOT/src/github.com/kubeless/
+mkdir -p $KUBELESS_WORKING_DIR
+cd $KUBELESS_WORKING_DIR
+git clone https://github.com/kubeless/kubeless.git
+cd $KUBELESS_WORKING_DIR/kubeless
+make bootstrap
+make binary
+make function-controller
+make binary-cross

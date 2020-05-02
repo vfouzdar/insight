@@ -1,0 +1,30 @@
+docker run -it debian /bin/bash
+apt-get update
+su -
+apt-get install sudo -y
+usermod -aG sudo root
+su root
+apt-get install build-essential -y
+apt-get install curl -y
+apt-get install wget -y
+apt-get install git -y
+apt-get install vim -y
+
+apt install gox
+cd /usr/local/
+curl -O https://dl.google.com/go/go1.12.16.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.12.16.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+go
+export GOROOT=/usr/local/go
+export GOPATH=/usr/local/go/bin
+export PATH=$GOPATH:$PATH
+export KUBELESS_WORKING_DIR=$GOROOT/src/github.com/kubeless/
+mkdir -p $KUBELESS_WORKING_DIR
+cd $KUBELESS_WORKING_DIR
+git clone https://github.com/vfouzdar/kubeless.git
+cd $KUBELESS_WORKING_DIR/kubeless
+make bootstrap
+make binary
+make function-controller
+make binary-cross
