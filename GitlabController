@@ -1,0 +1,338 @@
+package com.ericsson.gitlab;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.mail.MessagingException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@Component
+public class GitlabController implements CommandLineRunner {
+
+	private final Logger logger = LoggerFactory.getLogger(GitlabController.class);
+
+	@Value(value = "${gitlab.hostserver}")
+	private String gitlabHost;
+
+	@Value(value = "${gitlab.accessToken}")
+	private String accessToken;
+
+	@Value(value = "${gitlab.project.idSearch.on}")
+	private Integer isProjectIdSearchOn;
+	
+	@Value(value = "${gitlab.projectNameCsv}")
+	private String projectNameCsv;
+	
+	@Value(value = "${gitlab.projectIdCsv}")
+	private String projectIdCsv;
+
+	@Value(value = "${gitlab.valid.branchNameCsv}")
+	private String validBranchNameCsv;
+
+	@Value(value = "${gitlab.sinceNumberOfDays}")
+	private Integer numberOfDays;
+
+	@Value(value = "${gitlab.branch.validation.on}")
+	private Integer isBranchValiadtionOn;
+
+	@Value(value = "${gitlab.check.branchName.startsWith}")
+	private Integer isStartsWithCheckOn;
+
+	@Value(value = "${gitlab.valid.branchNameCsv.startWith}")
+	private String validBranchStartsWithCsv;
+
+	@Value(value = "${notification.sendEmail}")
+	private Integer isSendEmailOn;
+
+	@Value(value = "${notification.fromEmailAddress}")
+	private InternetAddress fromEmailAddressCsv;
+	
+	@Value(value = "${notification.toEmailCsv}")
+	private String toEmailAddressCsv;
+
+	@Value(value = "${notification.subject}")
+	private String emailSubject;
+
+	@Autowired
+	private JavaMailSender mailSender;
+
+	private String SEARCH_URL = ":GITLAB_HOST/api/v4/search?scope=projects&search=";
+	private String PROJECT_ID_URL = ":GITLAB_HOST/api/v4/projects/";
+
+	private String BRANCH_URL = ":GITLAB_HOST/api/v4/projects/:PROJECT_ID/repository/branches?per_page=999";
+	private String COMMIT_URL = ":GITLAB_HOST/api/v4/projects/:PROJECT_ID/repository/commits?ref_name=:BRANCH_NAME&per_page=999&first_parent=true&since=:LAST_DATETIME";
+
+	private List<String> validBranchList;
+	private List<String> validBranchStartsWithList;
+
+	private String lastCommitDateTime;
+	private StringBuilder strBuilder = new StringBuilder();
+	
+
+	@Override
+	public void run(String... args) throws Exception {
+
+		try {
+			SEARCH_URL = SEARCH_URL.replace(":GITLAB_HOST", gitlabHost);
+			PROJECT_ID_URL = PROJECT_ID_URL.replace(":GITLAB_HOST", gitlabHost);
+			BRANCH_URL = BRANCH_URL.replace(":GITLAB_HOST", gitlabHost);
+			COMMIT_URL = COMMIT_URL.replace(":GITLAB_HOST", gitlabHost);
+
+			validBranchList = Arrays.stream(validBranchNameCsv.split(",")).map(String::trim).sorted()
+					.collect(Collectors.toList());
+
+			validBranchStartsWithList = Arrays.stream(validBranchStartsWithCsv.split(",")).map(String::trim).sorted()
+					.collect(Collectors.toList());
+
+			Calendar cal = Calendar.getInstance();
+			cal.add(Calendar.DAY_OF_MONTH, -1 * numberOfDays);
+			lastCommitDateTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(cal.getTime());
+			lastCommitDateTime = lastCommitDateTime.replace("'", "").replace(" ", "");
+			
+			//header
+			strBuilder.append("\"PROJECT_NAME\",\"BRANCH_NAME\",\"COMMIT_TIME\",\"DEVELOPER_NAME\",\"COMMIT_MESSAGE\",\"BRANCH_NAME_CHECK\",\"BRANCH_MERGED\",\"BRANCH_PROTECTED\",\"BRANCH_DEFAULT\",\"BRANCH_DEV_CAN_PUSH\",\"BRANCH_DEV_CAN_MERGE\",\"BRANCH_COMMIT_ALLOWED\",\"IS_MERGE_COMMIT\"\n");
+			
+			if(isProjectIdSearchOn == 1) {
+				List<Entity> projectList = new ArrayList<Entity>();
+				for (String projId : projectIdCsv.split(",")) {
+					projId = projId.trim();
+					Entity project = getFromGitlab(PROJECT_ID_URL + projId, Entity.class);
+					projectList.add(project);
+				}
+				Entity[] projectArr = new Entity[projectList.size()];
+				processProject(projectList.toArray(projectArr));
+			}else {
+				for (String projName : projectNameCsv.split(",")) {
+					projName = projName.trim();
+					Entity[] projEntityArr = getFromGitlab(SEARCH_URL + projName, Entity[].class);
+					processProject(projEntityArr);
+				}
+			}
+
+			logger.info(strBuilder.toString());
+			File directory = new File("");
+			String fileName = "Gitlab_Report_" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".csv";
+			BufferedWriter writer = new BufferedWriter(
+					new FileWriter(directory.getAbsolutePath() + File.separator + fileName));
+			writer.write(strBuilder.toString());
+			writer.close();
+
+			if (isSendEmailOn == 1) {
+				sendEmailWithAttachment(strBuilder.toString(), fileName);
+			}
+
+		} catch (Exception e) {
+			logger.error("Error while getting data from Gitlab", e);
+		}
+	}
+
+	void sendEmailWithAttachment(String fileContent, String fileName) throws MessagingException, IOException {
+
+		MimeMessage msg = mailSender.createMimeMessage();
+
+		// true = multipart message
+		MimeMessageHelper helper = new MimeMessageHelper(msg, true);
+
+		helper.setTo(toEmailAddressCsv.split(","));
+
+		helper.setFrom(fromEmailAddressCsv);
+		
+		helper.setSubject(emailSubject);
+
+		helper.setText("Hi, PFA Gitlab Report.", true);
+		
+		File directory = new File("");
+		String zipFileName = directory.getAbsolutePath() + File.separator + "Gitlab_Report_" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".zip";
+		ZipOutputStream out = new ZipOutputStream(new FileOutputStream(zipFileName));
+		ZipEntry e = new ZipEntry(fileName);
+		out.putNextEntry(e);
+		
+		byte[] data = strBuilder.toString().getBytes();
+		out.write(data, 0, data.length);
+		out.closeEntry();
+		out.close();
+		helper.addAttachment("Gitlab_Report_" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".zip", new File(zipFileName));
+
+		mailSender.send(msg);
+
+	}
+
+	private void processProject(Entity[] projEntityArr) {
+		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+		for (Entity project : projEntityArr) {
+			logger.debug("Processing project = " + project.name);
+			//strBuilder.append("\nPROJECT NAME = " + project.name.toUpperCase() + "\n");
+			project.name = project.name.toUpperCase();
+			// find branches
+			Entity[] branchEntityArr = getFromGitlab(BRANCH_URL.replace(":PROJECT_ID", project.id.toString()),
+					Entity[].class);
+
+
+			for (Entity branch : branchEntityArr) {
+
+				String url = COMMIT_URL.replace(":PROJECT_ID", project.id.toString())
+						.replace(":BRANCH_NAME", branch.name).replace(":LAST_DATETIME", lastCommitDateTime);
+				logger.debug(url);
+				Entity[] commitEntityArr = getFromGitlab(url, Entity[].class);
+				// validBranch.append(formatLine(branch.name + " " + commitEntityArr.length + "
+				// commits\n"));
+				for (Entity commit : commitEntityArr) {
+					commit.message = commit.message.replaceAll("\n", " ");
+					commit.message = commit.message.replaceAll("\"", "'");
+					strBuilder.append("\"").append(project.name).append("\",\"").append(branch.name).append("\",\"")
+							.append(sdf.format(commit.committedDate)).append("\",\"").append(commit.authorName).append("\",\"")
+							.append(commit.message).append("\",\"");
+					if (isValidBranch(branch.name)) {
+						strBuilder.append("VALID\",\"");
+
+					} else {
+						strBuilder.append("INVALID\",\"");
+					}
+					strBuilder.append(branch.merged).append("\",\"")
+					.append(branch.protectedBranch).append("\",\"")
+					.append(branch.defaultBranch).append("\",\"")
+					.append(branch.devCanPush).append("\",\"")
+					.append(branch.devCanMerge).append("\",\"")
+					.append(branch.canPush).append("\",\"");
+					
+					//Merge will have multiple parentIds 
+					if(commit.parentIdList != null && commit.parentIdList.size() > 1) {
+						strBuilder.append("true\"\n");
+					}else {
+						strBuilder.append("false\"\n");
+					}
+				}
+			}
+
+		}
+	}
+
+	/**
+	 * If startsWith check is ON then branch is valid if it starts with any given
+	 * prefix. ELSE check full branchName with given validBranchList
+	 * 
+	 * @param branchName
+	 * @return
+	 */
+	private boolean isValidBranch(String branchName) {
+		if (isBranchValiadtionOn == 0) {
+			return true;
+		}
+		if (isStartsWithCheckOn == 1) {
+			for (String branchStart : validBranchStartsWithList) {
+
+				if (branchName.startsWith(branchStart)) {
+					return true;
+				}
+			}
+		} else {
+			return validBranchList.contains(branchName);
+		}
+
+		return false;
+	}
+
+	private String formatLine(String str) {
+
+		int len = str.length();
+		if (len <= 70) {
+			int diff = 70 - len;
+			String rep = "";
+			for (int i = 0; i < diff; i++) {
+				rep += " ";
+			}
+			str = str.replaceFirst(" ", rep);
+		}
+		return str;
+	}
+
+	private <T> T getFromGitlab(String url, Class returnType) {
+		RestTemplate restTemplate = new RestTemplate();
+		logger.debug("URL=" + url);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.set("Private-Token", accessToken);
+
+		HttpEntity request = new HttpEntity(headers);
+
+		ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.GET, request, returnType);
+		if (response != null && response.getBody() != null) {
+			logger.debug("Received response records.");
+			return response.getBody();
+		}
+		return null;
+	}
+
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+class Entity {
+
+	public String id;
+
+	public String name;
+
+	@JsonProperty(value = "author_name")
+	public String authorName;
+
+	@JsonProperty(value = "committed_date")
+	public Date committedDate;
+
+	public String message;
+	
+	public String merged;
+	
+	@JsonProperty(value = "protected")
+	public boolean protectedBranch;
+	
+	@JsonProperty(value = "default")
+	public boolean defaultBranch;
+	
+	@JsonProperty(value = "developers_can_push")
+	public boolean devCanPush;
+	
+	@JsonProperty(value = "developers_can_merge")
+	public boolean devCanMerge;
+	
+	@JsonProperty(value = "can_push")
+	public boolean canPush;
+	
+	@JsonProperty(value = "parent_ids")
+	public List<String> parentIdList;
+	
+	
+
+}
+ 
